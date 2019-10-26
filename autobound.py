@@ -16,6 +16,10 @@ def video_to_frames(video_name):
     while cap.isOpened():
         frameWasCaptured, frame = cap.read()
         if frameWasCaptured:
+            h, w, channels = frame.shape 
+            x1 = w/2 - h/2
+            x2 = x1 + h
+            frame = frame[0:h, x1:x2]
             cv2.imwrite(output_path + '/frame{:d}.jpg'.format(count), frame)
             count += 30 # i.e. at 30 fps, this advances one second
             cap.set(1, count)
