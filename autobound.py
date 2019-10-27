@@ -1,6 +1,8 @@
 import cv2
 import os
 from os import path
+import numpy as np
+import imutils
 
 def video_to_frames(video_name):
 
@@ -16,12 +18,11 @@ def video_to_frames(video_name):
     while cap.isOpened():
         frameWasCaptured, frame = cap.read()
         if frameWasCaptured:
-            h, w, channels = frame.shape 
-            x1 = w/2 - h/2
-            x2 = x1 + h
-            frame = frame[0:h, x1:x2]
-            cv2.imwrite(output_path + '/frame{:d}.jpg'.format(count), frame)
-            count += 30 # i.e. at 30 fps, this advances one second
+            for angle in np.arange(0, 360, 15):
+                rotated_frame = imutils.rotate_bound(frame, angle)
+                
+                cv2.imwrite(output_path + '/frame{:d}_{:d}.jpg'.format(count, angle), rotated_frame)
+            count += 25 # i.e. at 30 fps, this advances one second
             cap.set(1, count)
         else:
             cap.release()
