@@ -7,7 +7,7 @@ import imutils
 def video_to_frames(video_name):
 
     video_path = 'Input/' + video_name 
-    cap = cv2.VideoCapture(video_path)
+    video_capture = cv2.VideoCapture(video_path)
     output_path = 'Output/' + video_name;
     
     if not path.isdir(output_path):
@@ -15,17 +15,16 @@ def video_to_frames(video_name):
 
     count = 0
 
-    while cap.isOpened():
-        frameWasCaptured, frame = cap.read()
+    while video_capture.isOpened():
+        frameWasCaptured, frame = video_capture.read()
         if frameWasCaptured:
-            for angle in np.arange(0, 360, 15):
-                rotated_frame = imutils.rotate_bound(frame, angle)
-                
+            for angle in np.arange(0, 30, 15):
+                rotated_frame = imutils.rotate_bound(frame, angle)     
                 cv2.imwrite(output_path + '/frame{:d}_{:d}.jpg'.format(count, angle), rotated_frame)
-            count += 25 # i.e. at 30 fps, this advances one second
-            cap.set(1, count)
+            count += 200 # i.e. at 30 fps, this advances one second
+            video_capture.set(1, count)
         else:
-            cap.release()
+            video_capture.release()
             break
 
 input_path = 'Input'
