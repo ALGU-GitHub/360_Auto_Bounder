@@ -46,6 +46,3 @@ input_path = 'Input'
 for file in os.listdir(input_path):
     if file.endswith('.mp4'):
         video_to_frames(file)
-
-
-
