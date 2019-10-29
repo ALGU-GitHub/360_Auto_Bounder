@@ -43,6 +43,12 @@ def video_to_frames(video_name):
 
 input_path = 'Input'
 
-for file in os.listdir(input_path):
-    if file.endswith('.mp4'):
-        video_to_frames(file)
+#for file in os.listdir(input_path):
+ #   if file.endswith('.mp4'):
+  #      video_to_frames(file)
+
+print os.getcwd()
+darknet_path = 'darknet'
+os.chdir(darknet_path)
+#os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights data/dog.jpg')
+print('test')
