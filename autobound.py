@@ -4,6 +4,11 @@ from os import path
 import numpy as np
 import imutils
 
+
+def run_detection_on_image_at_path():
+    return 0
+
+
 def video_to_frames(video_name):
 
     video_path = 'Input/' + video_name 
@@ -31,7 +36,8 @@ def video_to_frames(video_name):
     while video_capture.isOpened():
         frameWasCaptured, frame = video_capture.read()
         if frameWasCaptured:
-            cv2.imwrite(unaltered_output_path + '/*frame{:d}.jpg'.format(count), frame)
+            cv2.imwrite(unaltered_output_path + '/*frame{:d}.jpg'.format(count), frame
+            os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ')
             for angle in np.arange(angle_increment, 30, angle_increment):
                 rotated_frame = imutils.rotate_bound(frame, angle)     
                 cv2.imwrite(altered_output_path + '/frame{:d}_{:d}.jpg'.format(count, angle), rotated_frame)
@@ -47,7 +53,7 @@ input_path = 'Input'
  #   if file.endswith('.mp4'):
   #      video_to_frames(file)
 
-print os.getcwd()
+autobound_path = os.getcwd()
 darknet_path = 'darknet'
 os.chdir(darknet_path)
 #os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights data/dog.jpg')
