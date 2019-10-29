@@ -1,0 +1,2 @@
+alan@Computer:~/darknet$ ./darknet detector demo cfg/coco.data cfg/yolov3.cfg cfg/yolov3.weights data/Store.mp4 i 0 -out_filename res.avi
+
