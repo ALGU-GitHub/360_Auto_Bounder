@@ -371,7 +371,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
             if (right > im.w - 1) right = im.w - 1;
             if (top < 0) top = 0;
             if (bot > im.h - 1) bot = im.h - 1;
-
+			
             //int b_x_center = (left + right) / 2;
             //int b_y_center = (top + bot) / 2;
             //int b_width = right - left;
@@ -395,12 +395,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
             //save_image(cropped_im, image_name);
             //free_image(cropped_im);
 
-            if (im.c == 1) {
-                draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
-            }
-            else {
-                draw_box_width(im, left, top, right, bot, width, red, green, blue); // 3 channels RGB
-            }
+
             if (alphabet) {
                 char labelstr[4096] = { 0 };
                 strcat(labelstr, names[selected_detections[i].best_class]);
@@ -411,9 +406,20 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
                         strcat(labelstr, names[j]);
                     }
                 }
-                image label = get_label_v3(alphabet, labelstr, (im.h*.03));
-                draw_label(im, top + width, left, label, rgb);
-                free_image(label);
+
+				if (strcmp(labelstr, "person") == 0)
+				{
+					printf("Bounding Box: Left=%d, Top=%d, Right=%d, Bottom=%d, ?=%s\n", left, top, right, bot, labelstr);
+					if (im.c == 1) {
+						draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
+					}
+					else {
+						draw_box_width(im, left, top, right, bot, width, red, green, blue); // 3 channels RGB
+					}
+					image label = get_label_v3(alphabet, labelstr, (im.h*.03));
+					draw_label(im, top + width, left, label, rgb);
+					free_image(label);
+				}  
             }
             if (selected_detections[i].det.mask) {
                 image mask = float_to_image(14, 14, 1, selected_detections[i].det.mask);
@@ -424,6 +430,9 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
                 free_image(resized_mask);
                 free_image(tmask);
             }
+			
+			
+			
     }
     free(selected_detections);
 }
