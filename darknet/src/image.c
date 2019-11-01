@@ -372,10 +372,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
             if (top < 0) top = 0;
             if (bot > im.h - 1) bot = im.h - 1;
 			
-            //int b_x_center = (left + right) / 2;
-            //int b_y_center = (top + bot) / 2;
-            //int b_width = right - left;
-            //int b_height = bot - top;
+
             //sprintf(labelstr, "%d x %d - w: %d, h: %d", b_x_center, b_y_center, b_width, b_height);
 
             // you should create directory: result_img
@@ -406,10 +403,26 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
                         strcat(labelstr, names[j]);
                     }
                 }
-
+				
+				// ---Only draw boxes for persons.
 				if (strcmp(labelstr, "person") == 0)
 				{
-					printf("Bounding Box: Left=%d, Top=%d, Right=%d, Bottom=%d, ?=%s\n", left, top, right, bot, labelstr);
+					
+					int obj_class = 0;
+					int b_x_center = (left + right) / 2;
+					int b_y_center = (top + bot) / 2;
+					int b_width = right - left;
+					int b_height = bot - top;
+					
+					//printf(">>> %d %d %d %d\n", b_x_center, b_y_center, b_width, b_height);
+					
+					// <object-class> <x> <y> <width> <height>
+					float relative_x = (float)b_x_center / im.w;
+					float relative_y = (float)b_y_center / im.h;
+					float relative_width = (float)b_width / im.w;
+					float relative_height = (float)b_height / im.h;
+					
+					printf("%d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height);
 					if (im.c == 1) {
 						draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
 					}
@@ -421,6 +434,8 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 					free_image(label);
 				}  
             }
+			
+
             if (selected_detections[i].det.mask) {
                 image mask = float_to_image(14, 14, 1, selected_detections[i].det.mask);
                 image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
