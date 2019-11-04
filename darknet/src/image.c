@@ -7,7 +7,7 @@
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
-
+#include <stdio.h>
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -335,6 +335,8 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 
     // image output
     qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_probs);
+	FILE * bound_output_file;
+	bound_output_file = fopen ("/home/alan/Environments/Autobounder/Output.txt","w");
     for (i = 0; i < selected_detections_num; ++i) {
             int width = im.h * .006;
             if (width < 1)
@@ -423,6 +425,9 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 					float relative_height = (float)b_height / im.h;
 					
 					printf("%d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height);
+					fprintf (bound_output_file, "%d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height);
+					
+					
 					if (im.c == 1) {
 						draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
 					}
@@ -449,6 +454,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 			
 			
     }
+	fclose (bound_output_file);
     free(selected_detections);
 }
 

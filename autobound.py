@@ -20,7 +20,7 @@ def run_detection_on_image_at_path(local_path_to_image):
     angle_increment = 15
     image_from_path = cv2.imread(local_path_to_image)
     
-    for angle in np.arange(0, 180, angle_increment):
+    for angle in np.arange(0, 360, angle_increment):
         rotated_frame = imutils.rotate(image_from_path, angle)
         new_image_path = local_path_to_image + '_{:d}.jpg'.format(angle)
         cv2.imwrite(new_image_path, rotated_frame)
