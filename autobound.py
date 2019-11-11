@@ -18,13 +18,15 @@ def run_detection_on_image_at_path(local_path_to_image):
     angle_increment = 15
     image_from_path = cv2.imread(local_path_to_image)
     
-     
+    for angle in np.arange(0, 360, angle_increment):
+        new_bound_info_path = output_path + '/' + image_name + '_{:d}.txt'.format(angle)
+        new_bound_info_file = open(new_bound_info_path, "w")
+        new_bound_info_file.close() 
+        
     for angle in np.arange(0, 360, angle_increment):
         # Rotate current frame.
         rotated_frame = imutils.rotate(image_from_path, angle)
-        
-       
-        
+
         new_image_path = output_path + '/' + image_name + '_{:d}.jpg'.format(angle)
         cv2.imwrite(new_image_path, rotated_frame)
         
@@ -32,13 +34,14 @@ def run_detection_on_image_at_path(local_path_to_image):
         darknet_path = 'darknet'
         os.chdir(darknet_path)
         os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path)
-        prediction_path = os.getcwd() + '/predictions.jpg'
+        
+        bound_info_path = autobound_path + '/Output.txt'
+        
         new_prediction_path = output_path + '/' + image_name + '_{:d}_prediction.jpg'.format(angle)
+        prediction_path = os.getcwd() + '/predictions.jpg'
         shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
-
-
 
 def draw_boarders_around_frame_at(frame_path):
     frame = cv2.imread(frame_path)
