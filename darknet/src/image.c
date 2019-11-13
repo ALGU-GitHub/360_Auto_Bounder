@@ -424,10 +424,10 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 					float relative_width = (float)b_width / im.w;
 					float relative_height = (float)b_height / im.h;
 
-					printf("%d %.6f %.6f %.6f %.6f\n", obj_class, b_x_center, b_y_center, b_width, b_height);
-					printf("%d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height);
+					printf("> %d %d %d %d %d\n", obj_class, b_x_center, b_y_center, b_width, b_height);
+					printf("> %d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height);
 					//fprintf (bound_output_file, "%d %.6f %.6f %.6f %.6f\n", obj_class, relative_x, relative_y, relative_width, relative_height
-					fprintf (bound_output_file, "%d %.6f %.6f %.6f %.6f\n", obj_class, b_x_center, b_y_center, b_width, b_height);
+					fprintf (bound_output_file, "%d %d %d %d %d\n", obj_class, b_x_center, b_y_center, b_width, b_height);
 					
 					
 					if (im.c == 1) {
