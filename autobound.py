@@ -6,6 +6,49 @@ import numpy as np
 import imutils
 import math 
 
+class BoundData:
+    def __init__(self):
+        self.object_class = 0
+        self.x_pos = 0.0
+        self.y_pos = 0.0
+        self.box_width = 0.0
+        self.box_height = 0.0
+    
+    def bound_info_string_to_variables(self, bound_info_string):
+        # <object-class> <x> <y> <width> <height>
+        values = map(int, bound_info_string.split(" "))
+        self.object_class = values[0]
+        self.x_pos = values[1]
+        self.y_pos = values[2]
+        self.box_width = values[3]
+        self.box_height = values[4]
+        
+def calculate_angle_difference_in_radians(current_angle, angle):
+    angle_difference_in_radians = 0
+    if angle < current_angle:
+        angle_difference_in_radians = math.radians((angle + 360) - current_angle)
+    else:
+         angle_difference_in_radians = math.radians(angle - current_angle)
+    return angle_difference_in_radians
+ 
+def calculate_rotated_position(x_pos, y_pos, angle_difference_in_radians):
+        rotated_x_pos = (x_pos * math.cos(angle_difference_in_radians)) - (y_pos * math.sin(angle_difference_in_radians))
+        rotated_y_pos = (x_pos * math.sin(angle_difference_in_radians)) + (y_pos * math.cos(angle_difference_in_radians))
+        return rotated_x_pos, rotated_y_pos
+
+def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radians):
+    rotated_box_width = 0
+    rotated_box_height = 0
+    congu = angle_difference_in_radians % (math.pi)
+    if  congu > math.pi:
+        angle_difference_in_radians = angle_difference_in_radians - math.pi
+        rotated_box_width = (box_height * math.cos(angle_difference_in_radians)) + (box_width * math.sin(angle_difference_in_radians)) 
+        rotated_box_height = (box_height * math.sin(angle_difference_in_radians)) + (box_width * math.cos(angle_difference_in_radians)) 
+    else:
+        rotated_box_width = (box_width * math.cos(angle_difference_in_radians)) + (box_height * math.sin(angle_difference_in_radians)) 
+        rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
+    return rotated_box_width, rotated_box_height
+
 def make_directory_if_missing(directory_name):
     if not path.isdir(directory_name):
         os.makedirs(directory_name)
@@ -41,26 +84,18 @@ def run_detection_on_image_at_path(local_path_to_image):
         
         bound_info_path = autobound_path + '/Output.txt'
         with open(bound_info_path) as bound_info_file:
-            line = bound_info_file.readline()
-            while line:
-                # <object-class> <x> <y> <width> <height>
-                values = map(int, line.split(" "))
-                x_pos = values[1]
-                y_pos = values[2]
-                box_width = values[3]
-                box_height = values[4]
-               
+            bound_info_string = bound_info_file.readline()
+            while bound_info_string:
+            
+                current_bound_data = BoundData()
+                current_bound_data.bound_info_string_to_variables(bound_info_string)
                 
                 for angle in np.arange(0, 360, angle_increment):
-                    angle_difference_in_radians = 0
-                    if angle < current_angle:
-                        angle_difference_in_radians = math.radians((angle + 360) - current_angle)
-                    else:
-                         angle_difference_in_radians = math.radians(angle - current_angle)
-                    rotated_x_pos = (x_pos * math.cos(angle_difference_in_radians)) - (y_pos * math.sin(angle_difference_in_radians))
-                    rotated_y_pos = (x_pos * math.sin(angle_difference_in_radians)) + (y_pos * math.cos(angle_difference_in_radians))
-                       
-                line = bound_info_file.readline()
+                    angle_difference_in_radians = calculate_angle_difference_in_radians(current_angle, angle)
+                    rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, angle_difference_in_radians)
+                    rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
+                    
+                bound_info_string = bound_info_file.readline()
                 
         new_prediction_path = output_path + '/' + image_name + '_{:d}_prediction.jpg'.format(current_angle)
         prediction_path = os.getcwd() + '/predictions.jpg'
