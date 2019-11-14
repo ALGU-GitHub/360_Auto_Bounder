@@ -70,9 +70,10 @@ def run_detection_on_image_at_path(local_path_to_image):
     # Make text files that will hold the bounding info for each rotation.
     for angle in np.arange(0, 360, angle_increment):
         new_bound_info_path = output_path + '/' + image_name + '_{:d}.txt'.format(angle)
-        new_bound_info_file = open(new_bound_info_path, "w")
+        new_bound_info_file = open(new_bound_info_path, "a+")
+        new_bound_info_file.truncate(0)
         list_of_files.append(new_bound_info_file)
-        
+    
     for current_angle in np.arange(0, 360, angle_increment):
         # Rotate current frame and save said rotated frame.
         rotated_frame = imutils.rotate(image_from_path, current_angle)
@@ -88,7 +89,7 @@ def run_detection_on_image_at_path(local_path_to_image):
         autobound_path = os.getcwd()
         darknet_path = 'darknet'
         os.chdir(darknet_path)
-        print
+        #print
         os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path)
         
         
@@ -99,15 +100,17 @@ def run_detection_on_image_at_path(local_path_to_image):
             
                 current_bound_data = BoundData()
                 current_bound_data.bound_info_string_to_variables(bound_info_string)
-                
+                file_counter = 0
                 for angle in np.arange(0, 360, angle_increment):
                     angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
 
                     rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
                     rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
-                    print('angle : ' + str(current_angle) + ' --> ' +str(angle))
-                    print('>>> x_pos ' + str(rotated_x_pos) + ' y_pos ' + str(rotated_y_pos) + ' box_width ' + str(rotated_box_width)  + ' box_height ' + str(rotated_box_height))
-                    
+                    #print('angle : ' + str(current_angle) + ' --> ' +str(angle))
+                    bounding_box_info_to_be_written = '0 ' + str(rotated_x_pos) + ' ' + str(rotated_y_pos) + ' ' + str(rotated_box_width)  + ' ' + str(rotated_box_height)
+                    #print(bounding_box_info_to_be_written)
+                    list_of_files[file_counter].write(bounding_box_info_to_be_written + '\n')
+                    file_counter += 1
                 bound_info_string = bound_info_file.readline()
                 
         new_prediction_path = output_path + '/' + image_name + '_{:d}_prediction.jpg'.format(current_angle)
