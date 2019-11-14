@@ -31,9 +31,11 @@ def calculate_angle_difference_in_radians(current_angle, angle):
          angle_difference_in_radians = math.radians(angle - current_angle)
     return angle_difference_in_radians
  
-def calculate_rotated_position(x_pos, y_pos, angle_difference_in_radians):
-        rotated_x_pos = (x_pos * math.cos(angle_difference_in_radians)) - (y_pos * math.sin(angle_difference_in_radians))
-        rotated_y_pos = (x_pos * math.sin(angle_difference_in_radians)) + (y_pos * math.cos(angle_difference_in_radians))
+def calculate_rotated_position(x_pos, y_pos, x_origin, y_origin, angle_difference_in_radians):
+        calibrated_x = x_pos - x_origin
+        calibrated_y = y_pos - y_origin
+        rotated_x_pos = (calibrated_x * math.cos(angle_difference_in_radians)) - (calibrated_y * math.sin(angle_difference_in_radians)) + x_origin
+        rotated_y_pos = (calibrated_x * math.sin(angle_difference_in_radians)) + (calibrated_y * math.cos(angle_difference_in_radians)) + y_origin
         return rotated_x_pos, rotated_y_pos
 
 def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radians):
@@ -47,7 +49,7 @@ def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radi
     else:
         rotated_box_width = (box_width * math.cos(angle_difference_in_radians)) + (box_height * math.sin(angle_difference_in_radians)) 
         rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
-    return rotated_box_width, rotated_box_height
+    return abs(rotated_box_width), abs(rotated_box_height)
 
 def make_directory_if_missing(directory_name):
     if not path.isdir(directory_name):
@@ -58,7 +60,7 @@ def run_detection_on_image_at_path(local_path_to_image):
     output_path = os.getcwd() + '/Output/' + image_name;
     make_directory_if_missing(output_path)
     
-    angle_increment = 15
+    angle_increment = 90
     image_from_path = cv2.imread(local_path_to_image)
     
     list_of_files = []
@@ -74,6 +76,11 @@ def run_detection_on_image_at_path(local_path_to_image):
         rotated_frame = imutils.rotate(image_from_path, current_angle)
         new_image_path = output_path + '/' + image_name + '_{:d}.jpg'.format(current_angle)
         cv2.imwrite(new_image_path, rotated_frame)
+        
+        rotated_frame_image = cv2.imread(new_image_path)
+        rotated_frame_height, rotated_frame_width, rotated_frame_channels = rotated_frame_image.shape
+        rotated_frame_x_origin = rotated_frame_width / 2
+        rotated_frame_y_origin = rotated_frame_height / 2
         
         # Run Detection on said rotated frame.
         autobound_path = os.getcwd()
@@ -92,8 +99,11 @@ def run_detection_on_image_at_path(local_path_to_image):
                 
                 for angle in np.arange(0, 360, angle_increment):
                     angle_difference_in_radians = calculate_angle_difference_in_radians(current_angle, angle)
-                    rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, angle_difference_in_radians)
+
+                    rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
                     rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
+                    print('angle : ' + str(current_angle) + ' --> ' +str(angle))
+                    print('>>> x_pos ' + str(rotated_x_pos) + ' y_pos ' + str(rotated_y_pos) + ' box_width ' + str(rotated_box_width)  + ' box_height ' + str(rotated_box_height))
                     
                 bound_info_string = bound_info_file.readline()
                 
@@ -106,8 +116,8 @@ def run_detection_on_image_at_path(local_path_to_image):
     for file in list_of_files:
         file.close()
         
-    list_of_files.clear()
-    
+    del list_of_files[:]
+     
 def draw_boarders_around_frame_at(frame_path):
     frame = cv2.imread(frame_path)
     height, width, channels = frame.shape
