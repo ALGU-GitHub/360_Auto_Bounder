@@ -6,6 +6,7 @@ import numpy as np
 import imutils
 import math 
 
+
 class BoundData:
     def __init__(self):
         self.object_class = 0
@@ -23,12 +24,12 @@ class BoundData:
         self.box_width = values[3]
         self.box_height = values[4]
         
-def calculate_angle_difference_in_radians(current_angle, angle):
+def calculate_angle_difference_in_radians(angle_to, angle_from):
     angle_difference_in_radians = 0
-    if angle < current_angle:
-        angle_difference_in_radians = math.radians((angle + 360) - current_angle)
+    if angle_from < angle_to:
+        angle_difference_in_radians = math.radians((angle_from + 360) - angle_to)
     else:
-         angle_difference_in_radians = math.radians(angle - current_angle)
+         angle_difference_in_radians = math.radians(angle_from - angle_to)
     return angle_difference_in_radians
  
 def calculate_rotated_position(x_pos, y_pos, x_origin, y_origin, angle_difference_in_radians):
@@ -56,11 +57,12 @@ def make_directory_if_missing(directory_name):
         os.makedirs(directory_name)
 
 def run_detection_on_image_at_path(local_path_to_image):
+
     image_name = os.path.splitext(local_path_to_image)[0]
     output_path = os.getcwd() + '/Output/' + image_name;
     make_directory_if_missing(output_path)
     
-    angle_increment = 90
+    angle_increment = 45
     image_from_path = cv2.imread(local_path_to_image)
     
     list_of_files = []
@@ -86,6 +88,7 @@ def run_detection_on_image_at_path(local_path_to_image):
         autobound_path = os.getcwd()
         darknet_path = 'darknet'
         os.chdir(darknet_path)
+        print
         os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path)
         
         
@@ -98,7 +101,7 @@ def run_detection_on_image_at_path(local_path_to_image):
                 current_bound_data.bound_info_string_to_variables(bound_info_string)
                 
                 for angle in np.arange(0, 360, angle_increment):
-                    angle_difference_in_radians = calculate_angle_difference_in_radians(current_angle, angle)
+                    angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
 
                     rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
                     rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
