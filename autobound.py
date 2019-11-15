@@ -6,7 +6,6 @@ import numpy as np
 import imutils
 import math 
 
-
 class BoundData:
     def __init__(self):
         self.object_class = 0
@@ -17,7 +16,7 @@ class BoundData:
     
     def bound_info_string_to_variables(self, bound_info_string):
         # <object-class> <x> <y> <width> <height>
-        values = map(int, bound_info_string.split(" "))
+        values = map(float, bound_info_string.split(" "))
         self.object_class = values[0]
         self.x_pos = values[1]
         self.y_pos = values[2]
@@ -51,6 +50,24 @@ def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radi
         rotated_box_width = (box_width * math.cos(angle_difference_in_radians)) + (box_height * math.sin(angle_difference_in_radians)) 
         rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
     return abs(rotated_box_width), abs(rotated_box_height)
+
+def debug_bound_info(image_directory, angle_increment):
+   
+    for current_angle in np.arange(0, 360, angle_increment):
+        new_image_path = image_directory + '_{:d}.jpg'.format(current_angle)
+        new_bound_info_path = image_directory + '_{:d}.txt'.format(current_angle)
+        print new_image_path
+        with open(new_bound_info_path) as bound_info_file:
+            bound_info_string = bound_info_file.readline()
+            while bound_info_string:
+                current_bound_data = BoundData()
+                current_bound_data.bound_info_string_to_variables(bound_info_string)
+                image = cv2.imread(new_image_path, cv2.IMREAD_COLOR)
+                cv2.rectangle(image,(366,345),(40,522),(0,255,0),3)
+                cv2.imshow('debug_bounds_' + str(current_angle), image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+                bound_info_string = bound_info_file.readline()
 
 def make_directory_if_missing(directory_name):
     if not path.isdir(directory_name):
@@ -103,11 +120,10 @@ def run_detection_on_image_at_path(local_path_to_image):
                 file_counter = 0
                 for angle in np.arange(0, 360, angle_increment):
                     angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
-
                     rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
                     rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
                     #print('angle : ' + str(current_angle) + ' --> ' +str(angle))
-                    bounding_box_info_to_be_written = '0 ' + str(rotated_x_pos) + ' ' + str(rotated_y_pos) + ' ' + str(rotated_box_width)  + ' ' + str(rotated_box_height)
+                    bounding_box_info_to_be_written = '0 ' + str(rotated_x_pos/rotated_frame_width) + ' ' + str(rotated_y_pos/rotated_frame_height) + ' ' + str(rotated_box_width/rotated_frame_width)  + ' ' + str(rotated_box_height/rotated_frame_height)
                     #print(bounding_box_info_to_be_written)
                     list_of_files[file_counter].write(bounding_box_info_to_be_written + '\n')
                     file_counter += 1
@@ -118,11 +134,15 @@ def run_detection_on_image_at_path(local_path_to_image):
         shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
-
+        
     for file in list_of_files:
         file.close()
-        
     del list_of_files[:]
+    
+    image_directory = output_path + '/' + image_name
+    debug_bound_info(image_directory, angle_increment)
+
+    
      
 def draw_boarders_around_frame_at(frame_path):
     frame = cv2.imread(frame_path)
