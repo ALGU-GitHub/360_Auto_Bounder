@@ -39,17 +39,20 @@ def calculate_rotated_position(x_pos, y_pos, x_origin, y_origin, angle_differenc
         return rotated_x_pos, rotated_y_pos
 
 def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radians):
-    rotated_box_width = 0
-    rotated_box_height = 0
+
     congu = angle_difference_in_radians % (math.pi)
-    if  congu > math.pi:
-        angle_difference_in_radians = angle_difference_in_radians - math.pi
+
+    
+
+    if  congu > (math.pi/2):
+        angle_difference_in_radians = math.pi - angle_difference_in_radians 
         rotated_box_width = (box_height * math.cos(angle_difference_in_radians)) + (box_width * math.sin(angle_difference_in_radians)) 
         rotated_box_height = (box_height * math.sin(angle_difference_in_radians)) + (box_width * math.cos(angle_difference_in_radians)) 
+        return abs(rotated_box_width), abs(rotated_box_height)
     else:
         rotated_box_width = (box_width * math.cos(angle_difference_in_radians)) + (box_height * math.sin(angle_difference_in_radians)) 
         rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
-    return abs(rotated_box_width), abs(rotated_box_height)
+        return abs(rotated_box_width), abs(rotated_box_height)
 
 def debug_bound_info(image_directory, angle_increment, frame_number):
     for current_angle in np.arange(0, 360, angle_increment):
@@ -81,7 +84,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
     output_path = os.getcwd() + '/Output/' + image_name;
     make_directory_if_missing(output_path)
     
-    angle_increment = 45
+    angle_increment = 15
     
     list_of_files = []
     
@@ -99,7 +102,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         cv2.imwrite(new_image_path, rotated_frame)
         
         rotated_frame_image = cv2.imread(new_image_path)
-        rotated_frame_height, rotated_frame_width, rotated_frame_channels = rotated_frame_image.shape
+        rotated_frame_height, rotated_frame_width, rotated_frame_channels = rotated_frame.shape
         rotated_frame_x_origin = rotated_frame_width / 2
         rotated_frame_y_origin = rotated_frame_height / 2
         
@@ -130,9 +133,9 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
                     file_counter += 1
                 bound_info_string = bound_info_file.readline()
                 
-        new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
+        #new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
         prediction_path = os.getcwd() + '/predictions.jpg'
-        shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
+        #shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
         
@@ -173,11 +176,12 @@ def produce_dataset_from_video(video_path, video_name):
 
 
 input_path = 'Input'
-
-for file_in_input_path in os.listdir(input_path):
-    if file_in_input_path.endswith('.mp4'):
-        video_path = input_path + '/' + file_in_input_path
-        video_name = os.path.splitext(file_in_input_path)[0]
-        produce_dataset_from_video(video_path, video_name)
+image = cv2.imread('Call_Center_f90_a270.jpg', cv2.IMREAD_COLOR)
+run_detection_on_frame(image, 'Debug', 0)
+#for file_in_input_path in os.listdir(input_path):
+ #   if file_in_input_path.endswith('.mp4'):
+ #       video_path = input_path + '/' + file_in_input_path
+#        video_name = os.path.splitext(file_in_input_path)[0]
+#        produce_dataset_from_video(video_path, video_name)
 
 print('Done')
