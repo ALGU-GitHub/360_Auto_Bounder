@@ -42,8 +42,6 @@ def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radi
 
     congu = angle_difference_in_radians % (math.pi)
 
-    
-
     if  congu > (math.pi/2):
         angle_difference_in_radians = math.pi - angle_difference_in_radians 
         rotated_box_width = (box_height * math.cos(angle_difference_in_radians)) + (box_width * math.sin(angle_difference_in_radians)) 
@@ -54,30 +52,40 @@ def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radi
         rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
         return abs(rotated_box_width), abs(rotated_box_height)
 
-def debug_bound_info(image_directory, angle_increment, frame_number):
-    for current_angle in np.arange(0, 360, angle_increment):
-        new_image_path = image_directory + '_f{:d}_a{:d}.jpg'.format(frame_number, current_angle)
-        new_bound_info_path = image_directory + '_f{:d}_a{:d}.txt'.format(frame_number, current_angle)
-        with open(new_bound_info_path) as bound_info_file:
-            bound_info_string = bound_info_file.readline()
-            image = cv2.imread(new_image_path, cv2.IMREAD_COLOR)
-            while bound_info_string:
-                current_bound_data = BoundData()
-                current_bound_data.bound_info_string_to_variables(bound_info_string)
-                height, width, channels = image.shape
-                p1_x  = int(width * (current_bound_data.x_pos - (current_bound_data.box_width/2)))
-                p1_y = int(height * (current_bound_data.y_pos - (current_bound_data.box_height/2)))
-                p2_x  = int(width * (current_bound_data.x_pos + (current_bound_data.box_width/2)))
-                p2_y = int(height * (current_bound_data.y_pos + (current_bound_data.box_height/2)))
-                cv2.rectangle(image,(p1_x,p1_y),(p2_x,p2_y),(0,255,0),3)
-                bound_info_string = bound_info_file.readline()
-            cv2.imshow('debug_bounds_' + str(current_angle), image)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
 def make_directory_if_missing(directory_name):
     if not path.isdir(directory_name):
         os.makedirs(directory_name)
+
+
+def debug_bound_info(output_path, image_name, angle_increment, frame_number):
+    image_directory = output_path + '/' + image_name
+    boxes_directory = 'Output/' + image_name + '/Boxes'
+    make_directory_if_missing(boxes_directory)
+    
+    for current_angle in np.arange(0, 360, angle_increment):
+        new_image_path = image_directory + '_f{:d}_a{:d}.jpg'.format(frame_number, current_angle)
+        new_bound_info_path = image_directory + '_f{:d}_a{:d}.txt'.format(frame_number, current_angle)
+        if os.stat(new_bound_info_path).st_size != 0:
+            with open(new_bound_info_path) as bound_info_file:
+                bound_info_string = bound_info_file.readline()
+                image = cv2.imread(new_image_path, cv2.IMREAD_COLOR)
+                while bound_info_string:
+                    current_bound_data = BoundData()
+                    current_bound_data.bound_info_string_to_variables(bound_info_string)
+                    height, width, channels = image.shape
+                    p1_x  = int(width * (current_bound_data.x_pos - (current_bound_data.box_width/2)))
+                    p1_y = int(height * (current_bound_data.y_pos - (current_bound_data.box_height/2)))
+                    p2_x  = int(width * (current_bound_data.x_pos + (current_bound_data.box_width/2)))
+                    p2_y = int(height * (current_bound_data.y_pos + (current_bound_data.box_height/2)))
+                    cv2.rectangle(image,(p1_x,p1_y),(p2_x,p2_y),(0,255,0),3)
+                    bound_info_string = bound_info_file.readline()
+            new_boxes_path = boxes_directory + '/' + image_name + '_f{:d}_a{:d}_boxes.jpg'.format(frame_number, current_angle)
+            cv2.imwrite(new_boxes_path, image)
+        else:
+            os.remove(new_image_path)
+            os.remove(new_bound_info_path)
+
+
 
 def run_detection_on_frame(current_frame, image_name, frame_number):
 
@@ -111,7 +119,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         darknet_path = 'darknet'
         os.chdir(darknet_path)
 
-        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.7')
+        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.6')
         
         
         bound_info_path = autobound_path + '/Output.txt'
@@ -143,8 +151,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         file.close()
     del list_of_files[:]
     
-    image_directory = output_path + '/' + image_name
-    debug_bound_info(image_directory, angle_increment, frame_number)
+    debug_bound_info(output_path, image_name, angle_increment, frame_number)
 
     
      
@@ -176,12 +183,12 @@ def produce_dataset_from_video(video_path, video_name):
 
 
 input_path = 'Input'
-image = cv2.imread('Call_Center_f90_a270.jpg', cv2.IMREAD_COLOR)
-run_detection_on_frame(image, 'Debug', 0)
-#for file_in_input_path in os.listdir(input_path):
- #   if file_in_input_path.endswith('.mp4'):
- #       video_path = input_path + '/' + file_in_input_path
-#        video_name = os.path.splitext(file_in_input_path)[0]
-#        produce_dataset_from_video(video_path, video_name)
+#image = cv2.imread('Call_Center_f90_a270.jpg', cv2.IMREAD_COLOR)
+#run_detection_on_frame(image, 'Debug', 0)
+for file_in_input_path in os.listdir(input_path):
+   if file_in_input_path.endswith('.mp4'):
+       video_path = input_path + '/' + file_in_input_path
+       video_name = os.path.splitext(file_in_input_path)[0]
+       produce_dataset_from_video(video_path, video_name)
 
 print('Done')
