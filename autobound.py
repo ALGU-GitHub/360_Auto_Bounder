@@ -51,50 +51,51 @@ def calculate_rotated_dimensions(box_width, box_height, angle_difference_in_radi
         rotated_box_height = (box_width * math.sin(angle_difference_in_radians)) + (box_height * math.cos(angle_difference_in_radians)) 
     return abs(rotated_box_width), abs(rotated_box_height)
 
-def debug_bound_info(image_directory, angle_increment):
-   
+def debug_bound_info(image_directory, angle_increment, frame_number):
     for current_angle in np.arange(0, 360, angle_increment):
-        new_image_path = image_directory + '_{:d}.jpg'.format(current_angle)
-        new_bound_info_path = image_directory + '_{:d}.txt'.format(current_angle)
-        print new_image_path
+        new_image_path = image_directory + '_f{:d}_a{:d}.jpg'.format(frame_number, current_angle)
+        new_bound_info_path = image_directory + '_f{:d}_a{:d}.txt'.format(frame_number, current_angle)
         with open(new_bound_info_path) as bound_info_file:
             bound_info_string = bound_info_file.readline()
+            image = cv2.imread(new_image_path, cv2.IMREAD_COLOR)
             while bound_info_string:
                 current_bound_data = BoundData()
                 current_bound_data.bound_info_string_to_variables(bound_info_string)
-                image = cv2.imread(new_image_path, cv2.IMREAD_COLOR)
-                cv2.rectangle(image,(366,345),(40,522),(0,255,0),3)
-                cv2.imshow('debug_bounds_' + str(current_angle), image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                height, width, channels = image.shape
+                p1_x  = int(width * (current_bound_data.x_pos - (current_bound_data.box_width/2)))
+                p1_y = int(height * (current_bound_data.y_pos - (current_bound_data.box_height/2)))
+                p2_x  = int(width * (current_bound_data.x_pos + (current_bound_data.box_width/2)))
+                p2_y = int(height * (current_bound_data.y_pos + (current_bound_data.box_height/2)))
+                cv2.rectangle(image,(p1_x,p1_y),(p2_x,p2_y),(0,255,0),3)
                 bound_info_string = bound_info_file.readline()
+            cv2.imshow('debug_bounds_' + str(current_angle), image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 def make_directory_if_missing(directory_name):
     if not path.isdir(directory_name):
         os.makedirs(directory_name)
 
-def run_detection_on_image_at_path(local_path_to_image):
+def run_detection_on_frame(current_frame, image_name, frame_number):
 
-    image_name = os.path.splitext(local_path_to_image)[0]
     output_path = os.getcwd() + '/Output/' + image_name;
     make_directory_if_missing(output_path)
     
     angle_increment = 45
-    image_from_path = cv2.imread(local_path_to_image)
     
     list_of_files = []
     
     # Make text files that will hold the bounding info for each rotation.
     for angle in np.arange(0, 360, angle_increment):
-        new_bound_info_path = output_path + '/' + image_name + '_{:d}.txt'.format(angle)
+        new_bound_info_path = output_path + '/' + image_name + '_f{:d}_a{:d}.txt'.format(frame_number, angle)
         new_bound_info_file = open(new_bound_info_path, "a+")
         new_bound_info_file.truncate(0)
         list_of_files.append(new_bound_info_file)
     
     for current_angle in np.arange(0, 360, angle_increment):
         # Rotate current frame and save said rotated frame.
-        rotated_frame = imutils.rotate(image_from_path, current_angle)
-        new_image_path = output_path + '/' + image_name + '_{:d}.jpg'.format(current_angle)
+        rotated_frame = imutils.rotate(current_frame, current_angle)
+        new_image_path = output_path + '/' + image_name + '_f{:d}_a{:d}.jpg'.format(frame_number, current_angle)
         cv2.imwrite(new_image_path, rotated_frame)
         
         rotated_frame_image = cv2.imread(new_image_path)
@@ -106,8 +107,8 @@ def run_detection_on_image_at_path(local_path_to_image):
         autobound_path = os.getcwd()
         darknet_path = 'darknet'
         os.chdir(darknet_path)
-        #print
-        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path)
+
+        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.7')
         
         
         bound_info_path = autobound_path + '/Output.txt'
@@ -129,7 +130,7 @@ def run_detection_on_image_at_path(local_path_to_image):
                     file_counter += 1
                 bound_info_string = bound_info_file.readline()
                 
-        new_prediction_path = output_path + '/' + image_name + '_{:d}_prediction.jpg'.format(current_angle)
+        new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
         prediction_path = os.getcwd() + '/predictions.jpg'
         shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
@@ -140,35 +141,30 @@ def run_detection_on_image_at_path(local_path_to_image):
     del list_of_files[:]
     
     image_directory = output_path + '/' + image_name
-    debug_bound_info(image_directory, angle_increment)
+    debug_bound_info(image_directory, angle_increment, frame_number)
 
     
      
-def draw_boarders_around_frame_at(frame_path):
-    frame = cv2.imread(frame_path)
-    height, width, channels = frame.shape
+def get_frame_with_boarders(input_frame):
+    height, width, channels = input_frame.shape
     diagonal_length = int(math.hypot(height, width))
     horizontal_boarder = (diagonal_length - width)/2
     vertical_boarder = (diagonal_length - height)/2
     color = [110,100,100]
     top, bottom, left, right = [vertical_boarder, vertical_boarder, horizontal_boarder, horizontal_boarder]
-    frame_with_border = cv2.copyMakeBorder(frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    input_frame_with_boarders = cv2.copyMakeBorder(input_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    return input_frame_with_boarders
 
-    cv2.imwrite(frame_path, frame_with_border)
-
-def video_to_frames(video_name):
+def produce_dataset_from_video(video_path, video_name):
+    
     count = 0
-    
-    video_path = 'Input/' + video_name 
     video_capture = cv2.VideoCapture(video_path)
-    
+
     while video_capture.isOpened():
-        frame_was_captured, frame = video_capture.read()
+        frame_was_captured, current_frame_capture = video_capture.read()
         if frame_was_captured:
-            frame_path = video_name + '_frame{:d}.jpg'.format(count)
-            cv2.imwrite(frame_path, frame)
-            draw_boarders_around_frame_at(frame_path)
-            run_detection_on_image_at_path(frame_path)
+            current_frame_with_boarders = get_frame_with_boarders(current_frame_capture)
+            run_detection_on_frame(current_frame_with_boarders, video_name, count)
             count += 30 
             video_capture.set(1, count)
         else:
@@ -176,12 +172,12 @@ def video_to_frames(video_name):
             break
 
 
-
 input_path = 'Input'
-run_detection_on_image_at_path('Test.jpg')
 
-#for file_in_input_path in os.listdir(input_path):
-#    if file_in_input_path.endswith('.mp4'):
-#        video_to_frames(file_in_input_path)
+for file_in_input_path in os.listdir(input_path):
+    if file_in_input_path.endswith('.mp4'):
+        video_path = input_path + '/' + file_in_input_path
+        video_name = os.path.splitext(file_in_input_path)[0]
+        produce_dataset_from_video(video_path, video_name)
 
 print('Done')
