@@ -13,7 +13,9 @@ class BoundData:
         self.y_pos = 0.0
         self.box_width = 0.0
         self.box_height = 0.0
-    
+        self.image_width = 0
+        self.image_height = 0
+        
     def bound_info_string_to_variables(self, bound_info_string):
         # <object-class> <x> <y> <width> <height>
         values = map(float, bound_info_string.split(" "))
@@ -22,6 +24,42 @@ class BoundData:
         self.y_pos = values[2]
         self.box_width = values[3]
         self.box_height = values[4]
+        
+        
+    def set_height(self, new_height):
+        self.image_height = new_height
+        
+    def set_width(self, new_width):
+        self.image_width = new_width
+    
+    def get_local_x_pos(self):
+        return self.x_pos * self.image_width
+        
+    def get_local_y_pos(self):
+        return self.y_pos * self.image_height
+        
+    def distance_to_other_bound_data(self, other_bound_data):
+        x_diff_squared = (self.x_pos - (self.image_width * other_bound_data.x_pos)) ** 2
+        y_diff_squared =(self.y_pos - (self.image_height * other_bound_data.y_pos)) ** 2
+        distance = math.sqrt(x_diff_squared + y_diff_squared)
+        return distance
+        
+    def would_be_redundant_in(self, bound_info_path):
+        if os.stat(bound_info_path).st_size == 0: 
+            return False
+        else:
+            with open(bound_info_path) as bound_info_file:
+                bound_info_string = bound_info_file.readline()
+                while bound_info_string:         
+                    bound_data_to_compare = BoundData()
+                    bound_data_to_compare.bound_info_string_to_variables(bound_info_string)
+
+                    if self.distance_to_other_bound_data(bound_data_to_compare) <= 25 :
+                        bound_info_file.close()
+                        return True
+                    bound_info_string = bound_info_file.readline()
+            bound_info_file.close()
+            return False  
         
 def calculate_angle_difference_in_radians(angle_to, angle_from):
     angle_difference_in_radians = 0
@@ -93,20 +131,19 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
     make_directory_if_missing(output_path)
     
     angle_increment = 15
-    
-    list_of_files = []
-    
+
     # Make text files that will hold the bounding info for each rotation.
     for angle in np.arange(0, 360, angle_increment):
         new_bound_info_path = output_path + '/' + image_name + '_f{:d}_a{:d}.txt'.format(frame_number, angle)
         new_bound_info_file = open(new_bound_info_path, "a+")
         new_bound_info_file.truncate(0)
-        list_of_files.append(new_bound_info_file)
+        new_bound_info_file.close()
     
     for current_angle in np.arange(0, 360, angle_increment):
         # Rotate current frame and save said rotated frame.
         rotated_frame = imutils.rotate(current_frame, current_angle)
         new_image_path = output_path + '/' + image_name + '_f{:d}_a{:d}.jpg'.format(frame_number, current_angle)
+        
         cv2.imwrite(new_image_path, rotated_frame)
         
         rotated_frame_image = cv2.imread(new_image_path)
@@ -116,7 +153,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         
         # Run Detection on said rotated frame.
         autobound_path = os.getcwd()
-        darknet_path = 'darknet'
+        darknet_path = autobound_path + '/darknet'
         os.chdir(darknet_path)
 
         os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.6')
@@ -125,20 +162,28 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         bound_info_path = autobound_path + '/Output.txt'
         with open(bound_info_path) as bound_info_file:
             bound_info_string = bound_info_file.readline()
-            while bound_info_string:
-            
+            while bound_info_string:         
                 current_bound_data = BoundData()
                 current_bound_data.bound_info_string_to_variables(bound_info_string)
-                file_counter = 0
-                for angle in np.arange(0, 360, angle_increment):
-                    angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
-                    rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
-                    rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
-                    #print('angle : ' + str(current_angle) + ' --> ' +str(angle))
-                    bounding_box_info_to_be_written = '0 ' + str(rotated_x_pos/rotated_frame_width) + ' ' + str(rotated_y_pos/rotated_frame_height) + ' ' + str(rotated_box_width/rotated_frame_width)  + ' ' + str(rotated_box_height/rotated_frame_height)
-                    #print(bounding_box_info_to_be_written)
-                    list_of_files[file_counter].write(bounding_box_info_to_be_written + '\n')
-                    file_counter += 1
+                current_bound_data.set_height(rotated_frame_height)
+                current_bound_data.set_width(rotated_frame_width)
+                current_bound_info_path = autobound_path + '/Output/' + image_name + '/' + image_name + '_f{:d}_a{:d}.txt'.format(frame_number, current_angle)
+                
+
+                
+                if not current_bound_data.would_be_redundant_in(current_bound_info_path):
+                    for angle in np.arange(0, 360, angle_increment):
+                        angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
+                        rotated_x_pos, rotated_y_pos = calculate_rotated_position(current_bound_data.x_pos, current_bound_data.y_pos, rotated_frame_x_origin, rotated_frame_y_origin, angle_difference_in_radians)
+                        rotated_box_width, rotated_box_height = calculate_rotated_dimensions(current_bound_data.box_width, current_bound_data.box_height, angle_difference_in_radians)
+                        #print('angle : ' + str(current_angle) + ' --> ' +str(angle))
+                        bounding_box_info_to_be_written = '0 ' + str(rotated_x_pos/rotated_frame_width) + ' ' + str(rotated_y_pos/rotated_frame_height) + ' ' + str(rotated_box_width/rotated_frame_width)  + ' ' + str(rotated_box_height/rotated_frame_height)
+                        #print(bounding_box_info_to_be_written)
+                        new_bound_info_path = output_path + '/' + image_name + '_f{:d}_a{:d}.txt'.format(frame_number, angle)
+                        new_bound_info_file = open(new_bound_info_path, "a+")
+                        new_bound_info_file.write(bounding_box_info_to_be_written + '\n')
+                        new_bound_info_file.close()
+                
                 bound_info_string = bound_info_file.readline()
                 
         #new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
@@ -146,11 +191,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         #shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
-        
-    for file in list_of_files:
-        file.close()
-    del list_of_files[:]
-    
+
     debug_bound_info(output_path, image_name, angle_increment, frame_number)
 
     
@@ -183,12 +224,12 @@ def produce_dataset_from_video(video_path, video_name):
 
 
 input_path = 'Input'
-#image = cv2.imread('Call_Center_f90_a270.jpg', cv2.IMREAD_COLOR)
-#run_detection_on_frame(image, 'Debug', 0)
-for file_in_input_path in os.listdir(input_path):
-   if file_in_input_path.endswith('.mp4'):
-       video_path = input_path + '/' + file_in_input_path
-       video_name = os.path.splitext(file_in_input_path)[0]
-       produce_dataset_from_video(video_path, video_name)
+image = cv2.imread('Mall_Kiosk_f360_a135.jpg', cv2.IMREAD_COLOR)
+run_detection_on_frame(image, 'Debug', 0)
+#for file_in_input_path in os.listdir(input_path):
+#   if file_in_input_path.endswith('.mp4'):
+ #      video_path = input_path + '/' + file_in_input_path
+  #     video_name = os.path.splitext(file_in_input_path)[0]
+   #    produce_dataset_from_video(video_path, video_name)
 
 print('Done')
