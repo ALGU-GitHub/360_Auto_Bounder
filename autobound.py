@@ -156,7 +156,7 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
         darknet_path = autobound_path + '/darknet'
         os.chdir(darknet_path)
 
-        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.6')
+        os.system('./darknet detect cfg/yolov3.cfg cfg/yolov3.weights ' + new_image_path + '  -thresh 0.75')
         
         
         bound_info_path = autobound_path + '/Output.txt'
@@ -186,9 +186,9 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
                 
                 bound_info_string = bound_info_file.readline()
                 
-        #new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
+        new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
         prediction_path = os.getcwd() + '/predictions.jpg'
-        #shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
+        shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
 
@@ -224,12 +224,13 @@ def produce_dataset_from_video(video_path, video_name):
 
 
 input_path = 'Input'
-image = cv2.imread('Mall_Kiosk_f360_a135.jpg', cv2.IMREAD_COLOR)
-run_detection_on_frame(image, 'Debug', 0)
-#for file_in_input_path in os.listdir(input_path):
-#   if file_in_input_path.endswith('.mp4'):
- #      video_path = input_path + '/' + file_in_input_path
-  #     video_name = os.path.splitext(file_in_input_path)[0]
-   #    produce_dataset_from_video(video_path, video_name)
-
-print('Done')
+#image = cv2.imread('Chinese_Restaurant_f750_a0.jpg', cv2.IMREAD_COLOR)
+#run_detection_on_frame(image, 'Debug', 0)
+for file_in_input_path in os.listdir(input_path):
+    if file_in_input_path.endswith('.mp4'):
+        print('Working on ' + file_in_input_path + '...')
+        video_path = input_path + '/' + file_in_input_path
+        video_name = os.path.splitext(file_in_input_path)[0]
+        produce_dataset_from_video(video_path, video_name)
+        print('Done with ' + file_in_input_path + '.')
+print('Done with all videos.')
