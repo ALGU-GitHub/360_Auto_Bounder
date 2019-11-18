@@ -169,8 +169,6 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
                 current_bound_data.set_width(rotated_frame_width)
                 current_bound_info_path = autobound_path + '/Output/' + image_name + '/' + image_name + '_f{:d}_a{:d}.txt'.format(frame_number, current_angle)
                 
-
-                
                 if not current_bound_data.would_be_redundant_in(current_bound_info_path):
                     for angle in np.arange(0, 360, angle_increment):
                         angle_difference_in_radians = calculate_angle_difference_in_radians(angle, current_angle)
@@ -186,9 +184,9 @@ def run_detection_on_frame(current_frame, image_name, frame_number):
                 
                 bound_info_string = bound_info_file.readline()
                 
-        new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
+        #new_prediction_path = output_path + '/' + image_name + 'f{:d}_a{:d}_prediction.jpg'.format(frame_number, current_angle)
         prediction_path = os.getcwd() + '/predictions.jpg'
-        shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
+        #shutil.copy(prediction_path, new_image_path + '_prediction.jpg')
         os.remove(prediction_path)
         os.chdir(autobound_path)
 
